@@ -4,7 +4,7 @@
 ### Computer Vision and Pattern Recognition, 2018          ###
 ##############################################################
 from __future__ import division
-
+import pdb
 import os, sys, time, random, argparse, PIL
 from pathlib import Path
 from PIL import ImageFile
@@ -27,8 +27,8 @@ def evaluate(args):
 
   print ('The image is {:}'.format(args.image))
   print ('The model is {:}'.format(args.model))
-  snapshot = Path(args.model)
-  assert snapshot.exists(), 'The model path {:} does not exist'
+  snapshot = args.model
+  assert os.path.exists(snapshot), 'The model path {:} does not exist'
   print ('The face bounding box is {:}'.format(args.face))
   assert len(args.face) == 4, 'Invalid face input : {:}'.format(args.face)
   if args.cpu: snapshot = torch.load(snapshot, map_location='cpu')
