@@ -4,7 +4,6 @@
 ### Computer Vision and Pattern Recognition, 2018          ###
 ##############################################################
 from __future__ import division
-import pdb
 import os, sys, time, random, argparse, PIL
 from pathlib import Path
 #import init_path
@@ -16,25 +15,26 @@ import numbers, numpy as np
 import torch
 import models
 import datasets
+import torchvision
 from visualization import draw_image_by_points
 from san_vision import transforms
 from utils import time_string, time_for_file, get_model_infos
 
-def evaluate(args):
-  if not args.cpu:
+def evaluate(image, model, face, save_path, cpu):
+  org_image = image
+  if not cpu:
     assert torch.cuda.is_available(), 'CUDA is not available.'
     torch.backends.cudnn.enabled   = True
     torch.backends.cudnn.benchmark = True
 
-  print ('The image is {:}'.format(args.image))
-  print ('The model is {:}'.format(args.model))
-  snapshot = args.model
+  print ('The image is {:}'.format(image))
+  print ('The model is {:}'.format(model))
+  snapshot = model
   assert os.path.exists(snapshot), 'The model path {:} does not exist'
-  print ('The face bounding box is {:}'.format(args.face))
-  assert len(args.face) == 4, 'Invalid face input : {:}'.format(args.face)
-  if args.cpu: snapshot = torch.load(snapshot, map_location='cpu')
+  print ('The face bounding box is {:}'.format(face))
+  assert len(face) == 4, 'Invalid face input : {:}'.format(face)
+  if cpu: snapshot = torch.load(snapshot, map_location='cpu')
   else       : snapshot = torch.load(snapshot)
-
   mean_fill   = tuple( [int(x*255) for x in [0.5, 0.5, 0.5] ] )
   normalize   = transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                       std=[0.5, 0.5, 0.5])
@@ -43,21 +43,20 @@ def evaluate(args):
 
   net = models.__dict__[param.arch](param.modelconfig, None)
 
-  if not args.cpu: net = net.cuda()
+  if not cpu: net = net.cuda()
   weights = models.remove_module_dict(snapshot['state_dict'])
   net.load_state_dict(weights)
 
   dataset = datasets.GeneralDataset(eval_transform, param.sigma, param.downsample, param.heatmap_type, param.dataset_name)
   dataset.reset(param.num_pts)
-  pdb.set_trace()
 
   print ('[{:}] prepare the input data'.format(time_string()))
-  [image, _, _, _, _, _, cropped_size], meta = dataset.prepare_input(args.image, args.face)
+  [image, _, _, _, _, _, cropped_size], meta = dataset.prepare_input(image, face)
   print ('[{:}] prepare the input data done'.format(time_string()))
   print ('Net : \n{:}'.format(net))
   # network forward
   with torch.no_grad():
-    if args.cpu: inputs = image.unsqueeze(0)
+    if cpu: inputs = image.unsqueeze(0)
     else       : inputs = image.unsqueeze(0).cuda()
     batch_heatmaps, batch_locs, batch_scos, _ = net(inputs)
     #print ('input-shape : {:}'.format(inputs.shape))
@@ -79,19 +78,17 @@ def evaluate(args):
   for i in range(param.num_pts):
     point = prediction[:, i]
     print ('The coordinate of {:02d}/{:02d}-th points : ({:.1f}, {:.1f}), score = {:.3f}'.format(i, param.num_pts, float(point[0]), float(point[1]), float(point[2])))
-
-  if args.save_path:
-    image = draw_image_by_points(args.image, prediction, 1, (255,0,0), False, False)
-    image.save( args.save_path )
-    print ('save image with landmarks into {:}'.format(args.save_path))
-  print('finish san evaluation on a single image : {:}'.format(args.image))
+  if save_path:
+    image = draw_image_by_points(org_image, prediction, 1, (255,0,0), False, False)
+    image.save( save_path )
+    print ('save image with landmarks into {:}'.format(save_path))
+  print('finish san evaluation on a single image : {:}'.format(image))
+  return locations
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='Evaluate a single image by the trained model', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('--image',            type=str,   help='The evaluation image path.')
-  parser.add_argument('--model',            type=str,   help='The snapshot to the saved detector.')
-  parser.add_argument('--face',  nargs='+', type=float, help='The coordinate [x1,y1,x2,y2] of a face')
-  parser.add_argument('--save_path',        type=str,   help='The path to save the visualization results')
-  parser.add_argument('--cpu',     action='store_true', help='Use CPU or not.')
-  args = parser.parse_args()
-  evaluate(args)
+  image = 'S010_006_00000001.png'
+  model = './model/checkpoint_49.pth.tar'
+  face = [222, 99, 535, 412]
+  save_path = 'temp_1.png'
+  cpu = True
+  evaluate(image, model, face, save_path, cpu)
