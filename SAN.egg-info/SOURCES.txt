@@ -1,0 +1,6 @@
+README.md
+setup.py
+SAN.egg-info/PKG-INFO
+SAN.egg-info/SOURCES.txt
+SAN.egg-info/dependency_links.txt
+SAN.egg-info/top_level.txt

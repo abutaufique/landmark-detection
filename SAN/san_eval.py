@@ -7,11 +7,12 @@ from __future__ import division
 import pdb
 import os, sys, time, random, argparse, PIL
 from pathlib import Path
+#import init_path
+from SAN.cache_data import init_path
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True # please use Pillow 4.0.0 or it may fail for some images
 from os import path as osp
 import numbers, numpy as np
-import init_path
 import torch
 import models
 import datasets
@@ -48,6 +49,7 @@ def evaluate(args):
 
   dataset = datasets.GeneralDataset(eval_transform, param.sigma, param.downsample, param.heatmap_type, param.dataset_name)
   dataset.reset(param.num_pts)
+  pdb.set_trace()
 
   print ('[{:}] prepare the input data'.format(time_string()))
   [image, _, _, _, _, _, cropped_size], meta = dataset.prepare_input(args.image, args.face)
@@ -83,7 +85,6 @@ def evaluate(args):
     image.save( args.save_path )
     print ('save image with landmarks into {:}'.format(args.save_path))
   print('finish san evaluation on a single image : {:}'.format(args.image))
-
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Evaluate a single image by the trained model', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
